@@ -178,6 +178,12 @@ async function handleChatSession({
 
     // Execute the conversation stream
     let finalMessage = { role: 'user', content: userMessage };
+    // Tracks the in-flight DB write for the most recent assistant message so
+    // that onToolUse can wait for it before persisting the tool_result that
+    // must immediately follow it — otherwise the two writes can race and get
+    // persisted out of order (see getConversationHistory's createdAt sort),
+    // which breaks Claude's tool_use/tool_result adjacency requirement.
+    let pendingMessageSave = Promise.resolve();
 
     while (finalMessage.stop_reason !== "end_turn") {
       finalMessage = await claudeService.streamConversation(
@@ -202,7 +208,7 @@ async function handleChatSession({
               content: message.content
             });
 
-            saveMessage(conversationId, message.role, JSON.stringify(message.content))
+            pendingMessageSave = saveMessage(conversationId, message.role, JSON.stringify(message.content))
               .catch((error) => {
                 console.error("Error saving message to database:", error);
               });
@@ -223,6 +229,11 @@ async function handleChatSession({
               type: 'tool_use',
               tool_use_message: toolUseMessage
             });
+
+            // Ensure the assistant message containing this tool_use is fully
+            // persisted before we persist its tool_result, so history reloads
+            // in the correct, API-required order.
+            await pendingMessageSave;
 
             // Call the tool
             const toolUseResponse = await mcpClient.callTool(toolName, toolArgs);

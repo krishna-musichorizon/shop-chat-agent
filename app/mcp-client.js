@@ -139,7 +139,8 @@ class MCPClient {
    */
   async callStorefrontTool(toolName, toolArgs) {
     try {
-      console.log("Calling storefront tool", toolName, toolArgs);
+      const normalizedArgs = this._normalizeToolArgs(toolName, toolArgs);
+      console.log("Calling storefront tool", toolName, normalizedArgs);
 
       const headers = {
         "Content-Type": "application/json"
@@ -150,7 +151,7 @@ class MCPClient {
         "tools/call",
         {
           name: toolName,
-          arguments: toolArgs,
+          arguments: normalizedArgs,
         },
         headers
       );
@@ -160,6 +161,27 @@ class MCPClient {
       console.error(`Error calling tool ${toolName}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Corrects known tool-argument shape mistakes before they reach Shopify.
+   * The model does not reliably follow the exact nesting some tool schemas
+   * require (e.g. search_catalog's arguments must be nested under a
+   * "catalog" object) even when the system prompt explicitly says so, so we
+   * defensively normalize here rather than relying on prompting alone.
+   *
+   * @private
+   * @param {string} toolName - Name of the tool being called
+   * @param {Object} toolArgs - Raw arguments as produced by the model
+   * @returns {Object} Corrected arguments safe to send to the MCP server
+   */
+  _normalizeToolArgs(toolName, toolArgs) {
+    if (toolName === "search_catalog" && toolArgs && !toolArgs.catalog) {
+      const { meta, ...catalogFields } = toolArgs;
+      return meta ? { meta, catalog: catalogFields } : { catalog: catalogFields };
+    }
+
+    return toolArgs;
   }
 
   /**

@@ -94,18 +94,23 @@ export function createToolService() {
    * @returns {Object} Formatted product data
    */
   const formatProductData = (product) => {
-    const price = product.price_range
-      ? `${product.price_range.currency} ${product.price_range.min}`
-      : (product.variants && product.variants.length > 0
-        ? `${product.variants[0].currency} ${product.variants[0].price}`
+    // price_range amounts are in ISO 4217 minor units (e.g. 2983 = $29.83)
+    const price = product.price_range?.min
+      ? `${product.price_range.min.currency} ${(product.price_range.min.amount / 100).toFixed(2)}`
+      : (product.variants?.[0]?.price
+        ? `${product.variants[0].price.currency} ${(product.variants[0].price.amount / 100).toFixed(2)}`
         : 'Price not available');
 
+    const image_url = product.media?.find(m => m.type === 'image')?.url
+      || product.variants?.[0]?.media?.find(m => m.type === 'image')?.url
+      || '';
+
     return {
-      id: product.product_id || `product-${Math.random().toString(36).substring(7)}`,
+      id: product.id || `product-${Math.random().toString(36).substring(7)}`,
       title: product.title || 'Product',
       price: price,
-      image_url: product.image_url || '',
-      description: product.description || '',
+      image_url,
+      description: product.description?.html || '',
       url: product.url || ''
     };
   };

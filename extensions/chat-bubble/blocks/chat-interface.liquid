@@ -34,7 +34,8 @@
 <script>
   window.shopChatConfig = {
     promptType: {{ block.settings.system_prompt | json }},
-    welcomeMessage: {{ block.settings.welcome_message | json }}
+    welcomeMessage: {{ block.settings.welcome_message | json }},
+    apiUrl: {{ block.settings.api_base_url | json }}
   };
   window.shopId = {{ shop.id }};
 </script>
@@ -55,6 +56,13 @@
       "id": "welcome_message",
       "label": "Welcome Message",
       "default": "👋 Hi there! How can I help you today?"
+    },
+    {
+      "type": "text",
+      "id": "api_base_url",
+      "label": "API base URL",
+      "info": "The backend server's URL (e.g. https://your-app.fly.dev). Leave as-is for local development with `shopify app dev --use-localhost`.",
+      "default": "https://localhost:3458"
     },
     {
       "type": "select",
