@@ -126,7 +126,13 @@ async function handleChatSession({
   // Initialize MCP client
   const shopId = request.headers.get("X-Shopify-Shop-Id");
   const shopDomain = request.headers.get("Origin");
-  const { mcpApiUrl } = await getCustomerAccountUrls(shopDomain, conversationId);
+  // Customer-account discovery is best-effort (used only for order-history /
+  // authenticated features, which this app doesn't rely on) — a failure here
+  // (e.g. the well-known endpoints not resolving on a custom domain) must not
+  // take down the whole chat request. MCPClient already falls back to a
+  // default customer endpoint when mcpApiUrl is undefined.
+  const customerAccountUrls = await getCustomerAccountUrls(shopDomain, conversationId);
+  const mcpApiUrl = customerAccountUrls?.mcpApiUrl;
 
   const mcpClient = new MCPClient(
     shopDomain,
