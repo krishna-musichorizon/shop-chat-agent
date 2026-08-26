@@ -17,8 +17,12 @@ class MCPClient {
     this.tools = [];
     this.customerTools = [];
     this.storefrontTools = [];
-    // TODO: Make this dynamic, for that first we need to allow access of mcp tools on password proteted demo stores.
-    this.storefrontMcpEndpoint = `${hostUrl}/api/mcp`;
+    // Storefront/cart/checkout tools live on the unified UCP endpoint.
+    // (The legacy /api/mcp endpoint is being retired by Shopify on 2026-08-31.)
+    this.storefrontMcpEndpoint = `${hostUrl}/api/ucp/mcp`;
+    // UCP requires every catalog/cart/checkout request to reference our
+    // hosted agent profile for capability negotiation (see public/ucp-profile.json).
+    this.ucpAgentProfile = `${process.env.SHOPIFY_APP_URL}/ucp-profile.json`;
 
     const accountHostUrl = hostUrl.replace(/(\.myshopify\.com)$/, '.account$1');
     this.customerMcpEndpoint = customerMcpEndpoint || `${accountHostUrl}/customer/api/mcp`;
@@ -176,12 +180,26 @@ class MCPClient {
    * @returns {Object} Corrected arguments safe to send to the MCP server
    */
   _normalizeToolArgs(toolName, toolArgs) {
-    if (toolName === "search_catalog" && toolArgs && !toolArgs.catalog) {
-      const { meta, ...catalogFields } = toolArgs;
-      return meta ? { meta, catalog: catalogFields } : { catalog: catalogFields };
+    let args = toolArgs || {};
+
+    if (toolName === "search_catalog" && !args.catalog) {
+      const { meta, ...catalogFields } = args;
+      args = meta ? { meta, catalog: catalogFields } : { catalog: catalogFields };
     }
 
-    return toolArgs;
+    // UCP catalog/cart/checkout tools require an agent-profile reference on
+    // every request. Always set this in code — the model has no reliable
+    // way to know this URL, and (per the search_catalog lesson) can't be
+    // trusted to shape meta correctly even when it does.
+    args = {
+      ...args,
+      meta: {
+        ...args.meta,
+        "ucp-agent": { profile: this.ucpAgentProfile }
+      }
+    };
+
+    return args;
   }
 
   /**
