@@ -5,6 +5,7 @@
 import { Anthropic } from "@anthropic-ai/sdk";
 import AppConfig from "./config.server";
 import systemPrompts from "../prompts/prompts.json";
+import shippingReturnsPolicy from "../prompts/policies/shipping-returns.md?raw";
 
 /**
  * Creates a Claude service instance
@@ -78,8 +79,10 @@ export function createClaudeService(apiKey = process.env.CLAUDE_API_KEY) {
    * @returns {string} The system prompt content
    */
   const getSystemPrompt = (promptType) => {
-    return systemPrompts.systemPrompts[promptType]?.content ||
+    const basePrompt = systemPrompts.systemPrompts[promptType]?.content ||
       systemPrompts.systemPrompts[AppConfig.api.defaultPromptType].content;
+
+    return `${basePrompt}\n\n---\n\nREFERENCE MATERIAL — Shipping & Returns Policy\nThis is the store's actual, current shipping and returns policy. Treat it as ground truth for any question about shipping, delivery times, returns, refunds, exchanges, faulty products, or warranty claims — quote or paraphrase it accurately, and do not contradict it or invent additional terms.\n\n${shippingReturnsPolicy}`;
   };
 
   return {
