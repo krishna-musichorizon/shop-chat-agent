@@ -94,12 +94,20 @@ export function createToolService() {
    * @returns {Object} Formatted product data
    */
   const formatProductData = (product) => {
-    // price_range amounts are in ISO 4217 minor units (e.g. 2983 = $29.83)
-    const price = product.price_range?.min
-      ? `${product.price_range.min.currency} ${(product.price_range.min.amount / 100).toFixed(2)}`
-      : (product.variants?.[0]?.price
-        ? `${product.variants[0].price.currency} ${(product.variants[0].price.amount / 100).toFixed(2)}`
-        : 'Price not available');
+    // price_range/list_price_range amounts are in ISO 4217 minor units (e.g. 2983 = $29.83)
+    const priceInfo = product.price_range?.min
+      || product.variants?.[0]?.price;
+    const price = priceInfo
+      ? `${priceInfo.currency} ${(priceInfo.amount / 100).toFixed(2)}`
+      : 'Price not available';
+
+    // list_price is the pre-discount/"compare at" price. Only surface it when
+    // it's genuinely higher than the current price (i.e. actually on sale).
+    const listPriceInfo = product.list_price_range?.min
+      || product.variants?.[0]?.list_price;
+    const compare_at_price = (listPriceInfo && priceInfo && listPriceInfo.amount > priceInfo.amount)
+      ? `${listPriceInfo.currency} ${(listPriceInfo.amount / 100).toFixed(2)}`
+      : null;
 
     const image_url = product.media?.find(m => m.type === 'image')?.url
       || product.variants?.[0]?.media?.find(m => m.type === 'image')?.url
@@ -109,6 +117,7 @@ export function createToolService() {
       id: product.id || `product-${Math.random().toString(36).substring(7)}`,
       title: product.title || 'Product',
       price: price,
+      compare_at_price,
       image_url,
       description: product.description?.html || '',
       url: product.url || ''

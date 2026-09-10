@@ -877,10 +877,23 @@
 
         info.appendChild(title);
 
-        // Add product price
+        // Add product price (with struck-through original price when on sale)
         const price = document.createElement('p');
         price.classList.add('shop-ai-product-price');
-        price.textContent = product.price;
+
+        if (product.compare_at_price) {
+          const comparePrice = document.createElement('span');
+          comparePrice.classList.add('shop-ai-product-compare-price');
+          comparePrice.textContent = product.compare_at_price;
+          price.appendChild(comparePrice);
+          price.appendChild(document.createTextNode(' '));
+        }
+
+        const currentPrice = document.createElement('span');
+        currentPrice.classList.add('shop-ai-product-current-price');
+        currentPrice.textContent = product.price;
+        price.appendChild(currentPrice);
+
         info.appendChild(price);
 
         // Add add-to-cart button

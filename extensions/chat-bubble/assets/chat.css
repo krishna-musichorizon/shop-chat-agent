@@ -505,7 +505,18 @@
     font-weight: 600;
     color: #5046e4;
   }
-  
+
+  .shop-ai-product-compare-price {
+    text-decoration: line-through;
+    color: #999;
+    font-weight: 400;
+    font-size: 12px;
+  }
+
+  .shop-ai-product-current-price {
+    color: #d9534f;
+  }
+
   /* Add to Cart Button Styling */
   .shop-ai-add-to-cart {
     width: 100%;
